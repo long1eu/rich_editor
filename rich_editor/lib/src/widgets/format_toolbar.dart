@@ -1,7 +1,10 @@
 import 'package:flutter/foundation.dart';
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide DropdownButton, DropdownMenuItem;
+import 'package:flutter_color_picker/flutter_color_picker.dart';
 import 'package:flutter_logger/flutter_logger.dart';
 import 'package:rich_editor/src/extensions.dart';
+import 'package:rich_editor/src/material/dropdown.dart';
+import 'package:rich_editor/src/material/rich_text_field.dart';
 import 'package:rich_editor/src/widgets/rich_editable_text.dart';
 
 const double _defaultFontSize = 16.0;
@@ -9,11 +12,18 @@ const FontItem _defaultFont = const FontItem(
   name: "Roboto",
   weights: const <int>[100, 200, 300, 400, 500, 600, 700, 800, 900],
 );
+const Color _defaultColor = Colors.black87;
 
 class FormatToolbar extends StatefulWidget {
-  FormatToolbar(this.styleController);
+  FormatToolbar({
+    @required StyleController styleController,
+    @required GlobalKey<RichTextFieldState> richTextFieldState,
+  })
+      : _styleController = styleController,
+        _richTextFieldState = richTextFieldState;
 
-  final StyleController styleController;
+  final StyleController _styleController;
+  final GlobalKey<RichTextFieldState> _richTextFieldState;
 
   @override
   State<StatefulWidget> createState() => new _FormatToolbarState();
@@ -34,23 +44,24 @@ class _FormatToolbarState extends State<FormatToolbar> {
   bool _overline = false;
   double _size = _defaultFontSize;
   String _fontName = "Roboto";
+  Color _textColor = _defaultColor;
 
   @override
   void initState() {
     super.initState();
-    _styleController = widget.styleController;
+    _styleController = widget._styleController;
     _styleController.addListener(_onStyleChanged);
 
     _lastKnownStyle = _styleController.value;
-    _size = widget.styleController.value.fontSize;
+    _size = widget._styleController.value.fontSize;
   }
 
   @override
   void didUpdateWidget(FormatToolbar oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (widget.styleController != oldWidget.styleController) {
-      oldWidget.styleController.removeListener(_onStyleChanged);
-      widget.styleController.addListener(_onStyleChanged);
+    if (widget._styleController != oldWidget._styleController) {
+      oldWidget._styleController.removeListener(_onStyleChanged);
+      widget._styleController.addListener(_onStyleChanged);
     }
   }
 
@@ -68,6 +79,18 @@ class _FormatToolbarState extends State<FormatToolbar> {
       package: "rich_editor",
     );
     setState(() => _fontName = value.name);
+  }
+
+  _setTextColor() async {
+    widget._richTextFieldState.currentState.prepareForFocusLoss();
+    Color color = await showDialog(
+        context: context, child: new AccentColorPickerDialog());
+    widget._richTextFieldState.currentState.restoreFocus();
+    log.d(color);
+
+    _styleController.value = _styleController.value.copyWith(color: color);
+
+    setState(() => _textColor = color);
   }
 
   void _setFontSize(double size) {
@@ -215,6 +238,18 @@ class _FormatToolbarState extends State<FormatToolbar> {
     });
   }
 
+  void _onDropdownEvent(OnTapState value) {
+    switch (value) {
+      case OnTapState.START:
+        widget._richTextFieldState.currentState.prepareForFocusLoss();
+        break;
+
+      case OnTapState.END:
+        widget._richTextFieldState.currentState.restoreFocus();
+        break;
+    }
+  }
+
   void _onStyleChanged() {
     log.d("_FormatToolbarState: $_lastKnownStyle");
     log.d("_FormatToolbarState: ${_styleController.value}");
@@ -228,6 +263,18 @@ class _FormatToolbarState extends State<FormatToolbar> {
       _overline = _isOverlined();
       _size = _lastKnownStyle.fontSize;
       _fontSizeState.currentState.setSize(_lastKnownStyle.fontSize);
+      _fontName = () {
+        var font = _lastKnownStyle.fontFamily;
+        log.d(font);
+        var index = font?.lastIndexOf("/");
+        if (index != -1)
+          return font?.substring(index + 1);
+        else
+          return font;
+      }();
+
+      log.d(_fontName);
+      _textColor = _lastKnownStyle.color;
     });
   }
 
@@ -279,12 +326,16 @@ class _FormatToolbarState extends State<FormatToolbar> {
       ),
       new DropdownButton(
         items: fonts,
+        onTap: _onDropdownEvent,
         onChanged: _setFont,
         value: fontsMap[_fontName],
       ),
-      new Container(
-        width: 1.0,
-        color: Theme.of(context).dividerColor,
+      new IconButton(
+        onPressed: _setTextColor,
+        icon: new Icon(
+          Icons.format_color_text,
+        ),
+        color: _textColor,
       ),
       new IconButton(
         onPressed: _setBold,

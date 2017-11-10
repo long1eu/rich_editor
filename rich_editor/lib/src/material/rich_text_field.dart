@@ -175,7 +175,7 @@ class RichTextField extends StatefulWidget {
   void setNewStyle(TextStyle textStyle) {}
 
   @override
-  _TextFieldState createState() => new _TextFieldState();
+  RichTextFieldState createState() => new RichTextFieldState();
 
   @override
   void debugFillProperties(DiagnosticPropertiesBuilder description) {
@@ -200,7 +200,7 @@ class RichTextField extends StatefulWidget {
   }
 }
 
-class _TextFieldState extends State<RichTextField> {
+class RichTextFieldState extends State<RichTextField> {
   final Log log = new Log("_TextFieldState");
 
   final GlobalKey<RichEditableTextState> _editableTextKey =
@@ -241,6 +241,15 @@ class _TextFieldState extends State<RichTextField> {
 
   void _requestKeyboard() {
     _editableTextKey.currentState?.requestKeyboard();
+  }
+
+
+  void prepareForFocusLoss() {
+    _editableTextKey.currentState?.saveValueBeforeFocusLoss = true;
+  }
+
+  void restoreFocus() {
+    _editableTextKey.currentState?.requestFocus();
   }
 
   void _onSelectionChanged(

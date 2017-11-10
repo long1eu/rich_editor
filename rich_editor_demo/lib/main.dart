@@ -28,6 +28,8 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
+  GlobalKey<RichTextFieldState> _richTextFieldState =
+      new GlobalKey<RichTextFieldState>();
   StyleController _styleController;
 
   @override
@@ -51,15 +53,19 @@ class _MyHomePageState extends State<MyHomePage> {
                       border: new Border.all(
                           color: Theme.of(context).primaryColor)),
                   child: new RichTextField(
+                    key: _richTextFieldState,
+                    styleController: _styleController,
                     maxLines: null,
                     decoration: null,
-                    styleController: _styleController,
                     style: baseStyle,
                   ),
                 ),
               ),
             ),
-            new FormatToolbar(_styleController)
+            new FormatToolbar(
+              styleController: _styleController,
+              richTextFieldState: _richTextFieldState,
+            )
           ],
         ),
       ),

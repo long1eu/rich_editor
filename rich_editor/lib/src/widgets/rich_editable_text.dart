@@ -331,6 +331,14 @@ class RichEditableTextState extends State<RichEditableText>
   final LayerLink _layerLink = new LayerLink();
   bool _didAutoFocus = false;
 
+  /// Don't dispose the selection and the selection overlay if the focus is lost
+  /// because of toolbar event.
+  bool saveValueBeforeFocusLoss = false;
+
+  /// Restore the keyboard when the focus is regained, after being lost by an
+  /// toolbar event.
+  bool restoreKeyboard = false;
+
   @override
   bool get wantKeepAlive => widget.focusNode.hasFocus;
 
@@ -715,15 +723,34 @@ class RichEditableTextState extends State<RichEditableText>
     });
   }
 
+
+
+
+  void requestFocus() {
+    FocusScope.of(context).requestFocus(widget.focusNode);
+    restoreKeyboard = true;
+  }
+
   void _handleFocusChanged() {
+    log.d("_handleFocusChanged hasFocus: $_hasFocus $_hasInputConnection");
+
     _openOrCloseInputConnectionIfNeeded();
     _startOrStopCursorTimerIfNeeded();
-    _updateOrDisposeSelectionOverlayIfNeeded();
-    if (!_hasFocus) {
-      // Clear the selection and composition state if this widget lost focus.
-      _editingValue = _editingValue.copyWith(value: _editingValue.value);
-      log.d("_handleFocusChanged");
+
+    if (restoreKeyboard && _hasFocus) {
+      restoreKeyboard = false;
+      _openInputConnection();
     }
+
+    if (!saveValueBeforeFocusLoss) {
+      saveValueBeforeFocusLoss = false;
+      _updateOrDisposeSelectionOverlayIfNeeded();
+      if (!_hasFocus) {
+        // Clear the selection and composition state if this widget lost focus.
+        _editingValue = _editingValue.copyWith(value: _editingValue.value);
+      }
+    }
+
     updateKeepAlive();
   }
 
