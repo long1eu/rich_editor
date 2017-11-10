@@ -3,7 +3,6 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 
 class Extensions {
-
   static bool isEmpty(TextSpan textSpan) {
     assert(textSpan.debugAssertIsValid());
     bool isEmpty = true;
@@ -48,7 +47,7 @@ class Extensions {
   }
 
   /// Creates a copy of this [TextSpan] but with the given fields replaced with the new values.
-  static TextSpan copyWith(
+  static TextSpan copySpanWith(
       {@required TextSpan base,
       TextStyle style,
       String text,
@@ -59,6 +58,39 @@ class Extensions {
         text: text ?? base.text,
         children: children ?? base.children,
         recognizer: recognizer ?? base.recognizer);
+  }
+
+  static TextStyle copyStyleWith({
+    @required TextStyle base,
+    color,
+    String fontFamily,
+    fontSize,
+    fontWeight,
+    fontStyle,
+    letterSpacing,
+    wordSpacing,
+    textBaseline,
+    height,
+    decoration,
+    decorationColor,
+    decorationStyle,
+    package,
+  }) {
+    return new TextStyle(
+      color: color ?? base.color,
+      fontFamily: fontFamily ?? base.fontFamily,
+      fontSize: fontSize ?? base.fontSize,
+      fontWeight: fontWeight ?? base.fontWeight,
+      fontStyle: fontStyle ?? base.fontStyle,
+      letterSpacing: letterSpacing ?? base.letterSpacing,
+      wordSpacing: wordSpacing ?? base.wordSpacing,
+      textBaseline: textBaseline ?? base.textBaseline,
+      height: height ?? base.height,
+      decoration: decoration ?? base.decoration,
+      decorationColor: decorationColor ?? base.decorationColor,
+      decorationStyle: decorationStyle ?? base.decorationStyle,
+      package: package ?? base.package,
+    );
   }
 
   /// Returns a new text style that matches this text style but with some values
@@ -151,4 +183,3 @@ class Extensions {
 
   static TextStyle emptyStyle = const TextStyle();
 }
-

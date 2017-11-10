@@ -362,7 +362,7 @@ class RichEditableTextState extends State<RichEditableText>
     _currentSelectedStyle = _styleController.value;
 
     _editingValue = _editingValue.copyWith(
-        value: Extensions.copyWith(
+        value: Extensions.copySpanWith(
             base: _editingValue.value, style: _styleController.value));
   }
 

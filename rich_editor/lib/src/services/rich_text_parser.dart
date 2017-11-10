@@ -98,7 +98,7 @@ class RichTextEditingValueParser {
               .substring(currentSelection.start, newSelection.start);
 
           newValue = newValue.copyWith(
-              value: Extensions.copyWith(
+              value: Extensions.copySpanWith(
             base: oldValue.value,
             text: currentSelection.textBefore(oldValue.value.text) +
                 text +
@@ -148,26 +148,26 @@ class RichTextEditingValueParser {
           if (affectedSpan.style == style) {
             log.d(
                 "----------------------------------------------------SAME STYLE");
-            affectedSpan = Extensions.copyWith(
+            affectedSpan = Extensions.copySpanWith(
                 base: affectedSpan, text: beforeText + text + afterText);
             children.insert(index, affectedSpan);
           } else {
             log.d(
                 "-----------------------------------------------DIFFERENT STYLE");
             children.insert(index,
-                Extensions.copyWith(base: affectedSpan, text: beforeText));
+                Extensions.copySpanWith(base: affectedSpan, text: beforeText));
             children.insert(
                 index + 1,
-                Extensions.copyWith(
+                Extensions.copySpanWith(
                     base: affectedSpan, text: text, style: style));
             children.insert(index + 2,
-                Extensions.copyWith(base: affectedSpan, text: afterText));
+                Extensions.copySpanWith(base: affectedSpan, text: afterText));
           }
 
           log.d(children);
 
           TextSpan root =
-              Extensions.copyWith(base: oldValue.value, children: children);
+              Extensions.copySpanWith(base: oldValue.value, children: children);
           newValue = newValue.copyWith(value: root);
         }
 
@@ -195,11 +195,11 @@ class RichTextEditingValueParser {
 
             var lastSpan = children.last;
             lastSpan =
-                Extensions.copyWith(base: lastSpan, text: lastSpan.text + text);
+                Extensions.copySpanWith(base: lastSpan, text: lastSpan.text + text);
             children.removeLast();
             children.add(lastSpan);
             TextSpan root =
-                Extensions.copyWith(base: oldValue.value, children: children);
+                Extensions.copySpanWith(base: oldValue.value, children: children);
 
             newValue = newValue.copyWith(value: root);
           } else {
@@ -216,7 +216,7 @@ class RichTextEditingValueParser {
 
             children.add(new TextSpan(text: text, style: style));
             TextSpan root =
-                Extensions.copyWith(base: oldValue.value, children: children);
+                Extensions.copySpanWith(base: oldValue.value, children: children);
 
             newValue = newValue.copyWith(value: root);
           }
@@ -237,7 +237,7 @@ class RichTextEditingValueParser {
               currentSpan.text.substring(oldValue.selection.extentOffset);
 
           newValue = newValue.copyWith(
-              value: Extensions.copyWith(base: oldValue.value, text: text));
+              value: Extensions.copySpanWith(base: oldValue.value, text: text));
         }
 
         /// If the insert position is in one of the children then we retrieve
@@ -285,7 +285,7 @@ class RichTextEditingValueParser {
 
           if (newText.isNotEmpty) {
             affectedSpan =
-                Extensions.copyWith(base: affectedSpan, text: newText);
+                Extensions.copySpanWith(base: affectedSpan, text: newText);
             children.insert(index, affectedSpan);
           } else if (children.isEmpty) children = null;
 
@@ -317,7 +317,7 @@ class RichTextEditingValueParser {
               .substring(Extensions.getOffsetInParent(currentSpan, lastSpan));
 
           if (text.isNotEmpty) {
-            lastSpan = Extensions.copyWith(base: lastSpan, text: text);
+            lastSpan = Extensions.copySpanWith(base: lastSpan, text: text);
             children.add(lastSpan);
           } else if (children.isEmpty) children = null;
 
@@ -378,7 +378,7 @@ class RichTextEditingValueParser {
           children.insert(1, new TextSpan(text: afterText, style: span.style));
         }
 
-        newSpan = Extensions.copyWith(
+        newSpan = Extensions.copySpanWith(
             base: span, text: beforeText, children: children);
       }
 
@@ -413,14 +413,14 @@ class RichTextEditingValueParser {
           children.remove(startSpan);
           children.insert(
               0,
-              Extensions.copyWith(
+              Extensions.copySpanWith(
                   base: startSpan,
                   text: beforeText,
                   style: Extensions.deepMerge(startSpan.style, diffStyle)));
 
           if (afterText.isNotEmpty) {
             children.insert(
-                1, Extensions.copyWith(base: startSpan, text: afterText));
+                1, Extensions.copySpanWith(base: startSpan, text: afterText));
           }
         }
 
@@ -441,19 +441,19 @@ class RichTextEditingValueParser {
 
           children.insert(
               0,
-              Extensions.copyWith(
+              Extensions.copySpanWith(
                   base: startSpan,
                   style: Extensions.deepMerge(startSpan.style, diffStyle)));
           children.insert(
               1,
-              Extensions.copyWith(
+              Extensions.copySpanWith(
                   base: endSpan,
                   text: beforeText,
                   style: Extensions.deepMerge(endSpan.style, diffStyle)));
 
           if (afterText.isNotEmpty) {
             children.insert(
-                2, Extensions.copyWith(base: endSpan, text: afterText));
+                2, Extensions.copySpanWith(base: endSpan, text: afterText));
           }
         }
 
@@ -473,17 +473,17 @@ class RichTextEditingValueParser {
 
           var newChildren = [];
           children.getRange(0, endIndex).forEach((span) => newChildren.add(
-              Extensions.copyWith(
+              Extensions.copySpanWith(
                   base: span,
                   style: Extensions.deepMerge(span.style, diffStyle))));
-          newChildren.add(Extensions.copyWith(
+          newChildren.add(Extensions.copySpanWith(
               base: endSpan,
               text: beforeEndText,
               style: Extensions.deepMerge(endSpan.style, diffStyle)));
 
           if (afterEndText.isNotEmpty)
             newChildren
-                .add(Extensions.copyWith(base: endSpan, text: afterEndText));
+                .add(Extensions.copySpanWith(base: endSpan, text: afterEndText));
 
           newChildren.addAll(children.getRange(endIndex + 1, children.length));
 
@@ -497,7 +497,7 @@ class RichTextEditingValueParser {
                 style: Extensions.deepMerge(span.style, diffStyle)));
 
         children = _optimiseChildren(children);
-        newSpan = Extensions.copyWith(
+        newSpan = Extensions.copySpanWith(
             base: span, text: rootTextBeforeSelection, children: children);
       }
     }
@@ -549,11 +549,11 @@ class RichTextEditingValueParser {
 
         if (beforeText.isNotEmpty) {
           beforeChildren
-              .add(Extensions.copyWith(base: startSpan, text: beforeText));
+              .add(Extensions.copySpanWith(base: startSpan, text: beforeText));
         }
 
         if (insideText.isNotEmpty) {
-          beforeChildren.add(Extensions.copyWith(
+          beforeChildren.add(Extensions.copySpanWith(
               base: startSpan,
               text: insideText,
               style: Extensions.deepMerge(startSpan.style, diffStyle)));
@@ -561,7 +561,7 @@ class RichTextEditingValueParser {
 
         if (afterText.isNotEmpty) {
           beforeChildren
-              .add(Extensions.copyWith(base: startSpan, text: afterText));
+              .add(Extensions.copySpanWith(base: startSpan, text: afterText));
         }
       }
 
@@ -587,34 +587,34 @@ class RichTextEditingValueParser {
 
         if (beforeStartText.isNotEmpty) {
           beforeChildren
-              .add(Extensions.copyWith(base: startSpan, text: beforeStartText));
+              .add(Extensions.copySpanWith(base: startSpan, text: beforeStartText));
         }
 
-        beforeChildren.add(Extensions.copyWith(
+        beforeChildren.add(Extensions.copySpanWith(
             base: startSpan,
             text: afterStartText,
             style: Extensions.deepMerge(startSpan.style, diffStyle)));
 
         if (endIndex - startIndex > 1) {
           children.getRange(startIndex + 1, endIndex).forEach((span) =>
-              beforeChildren.add(Extensions.copyWith(
+              beforeChildren.add(Extensions.copySpanWith(
                   base: span,
                   style: Extensions.deepMerge(span.style, diffStyle))));
         }
 
-        beforeChildren.add(Extensions.copyWith(
+        beforeChildren.add(Extensions.copySpanWith(
             base: endSpan,
             text: beforeEndText,
             style: Extensions.deepMerge(endSpan.style, diffStyle)));
         if (afterEndText.isNotEmpty) {
           beforeChildren
-              .add(Extensions.copyWith(base: endSpan, text: afterEndText));
+              .add(Extensions.copySpanWith(base: endSpan, text: afterEndText));
         }
       }
 
       beforeChildren.addAll(afterChildren);
       beforeChildren = _optimiseChildren(beforeChildren);
-      newSpan = Extensions.copyWith(base: span, children: beforeChildren);
+      newSpan = Extensions.copySpanWith(base: span, children: beforeChildren);
     }
 
     return newSpan;
@@ -636,7 +636,7 @@ class RichTextEditingValueParser {
 
       if (span.style == previousSpan.style) {
         TextSpan lastSpanInNewChildren = newChildren.last;
-        newChildren[newChildren.length - 1] = Extensions.copyWith(
+        newChildren[newChildren.length - 1] = Extensions.copySpanWith(
             base: previousSpan, text: lastSpanInNewChildren.text + span.text);
       } else
         newChildren.add(span);

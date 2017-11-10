@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:rich_editor/rich_editor.dart';
 
-
 void main() {
   runApp(new MyApp());
 }
@@ -46,14 +45,17 @@ class _MyHomePageState extends State<MyHomePage> {
           children: <Widget>[
             new Expanded(
               child: new Container(
-                decoration: new BoxDecoration(
-                    border:
-                    new Border.all(color: Theme.of(context).primaryColor)),
-                child: new RichTextField(
-                  maxLines: null,
-                  decoration: null,
-                  styleController: _styleController,
-                  style: baseStyle,
+                padding: new EdgeInsets.all(16.0),
+                child: new Container(
+                  decoration: new BoxDecoration(
+                      border: new Border.all(
+                          color: Theme.of(context).primaryColor)),
+                  child: new RichTextField(
+                    maxLines: null,
+                    decoration: null,
+                    styleController: _styleController,
+                    style: baseStyle,
+                  ),
                 ),
               ),
             ),

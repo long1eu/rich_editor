@@ -9,9 +9,42 @@ dependencies:
     sdk: flutter
   flutter_logger: ^0.0.1
 
-dev_dependencies:
-  test: ^0.12.0
-
 flutter:
+
+  uses-material-design: true
+
   assets:
     - res/images/format_overline.png
+
+  fonts:
+    - family: Berkshire Swash
+      fonts:
+        - asset: res/fonts/Berkshire_Swash/BerkshireSwash-Regular.ttf
+    - family: Cinzel Decorative
+      fonts:
+        - asset: res/fonts/Cinzel_Decorative/CinzelDecorative-Regular.ttf
+        - asset: res/fonts/Cinzel_Decorative/CinzelDecorative-Bold.ttf
+          weight: 700
+        - asset: res/fonts/Cinzel_Decorative/CinzelDecorative-Black.ttf
+          weight: 900
+    - family: Comfortaa
+      fonts:
+        - asset: res/fonts/Comfortaa/Comfortaa-Regular.ttf
+        - asset: res/fonts/Comfortaa/Comfortaa-Light.ttf
+          weight: 300
+        - asset: res/fonts/Comfortaa/Comfortaa-Bold.ttf
+          weight: 700
+    - family: Indie Flower
+      fonts:
+        - asset: res/fonts/Indie_Flower/IndieFlower.ttf
+    - family: Lobster
+      fonts:
+        - asset: res/fonts/Lobster/Lobster-Regular.ttf
+    - family: Satisfy
+      fonts:
+        - asset: res/fonts/Satisfy/Satisfy-Regular.ttf
+    - family: Tangerine
+      fonts:
+        - asset: res/fonts/Tangerine/Tangerine-Regular.ttf
+        - asset: res/fonts/Tangerine/Tangerine-Bold.ttf
+          weight: 700

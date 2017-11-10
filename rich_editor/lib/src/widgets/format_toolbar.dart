@@ -1,8 +1,14 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_logger/flutter_logger.dart';
+import 'package:rich_editor/src/extensions.dart';
 import 'package:rich_editor/src/widgets/rich_editable_text.dart';
 
 const double _defaultFontSize = 16.0;
+const FontItem _defaultFont = const FontItem(
+  name: "Roboto",
+  weights: const <int>[100, 200, 300, 400, 500, 600, 700, 800, 900],
+);
 
 class FormatToolbar extends StatefulWidget {
   FormatToolbar(this.styleController);
@@ -27,6 +33,7 @@ class _FormatToolbarState extends State<FormatToolbar> {
   bool _lineThrough = false;
   bool _overline = false;
   double _size = _defaultFontSize;
+  String _fontName = "Roboto";
 
   @override
   void initState() {
@@ -51,6 +58,16 @@ class _FormatToolbarState extends State<FormatToolbar> {
   void dispose() {
     super.dispose();
     _styleController.removeListener(_onStyleChanged);
+  }
+
+  void _setFont(FontItem value) {
+    log.d(value);
+    _styleController.value = Extensions.copyStyleWith(
+      base: _styleController.value,
+      fontFamily: value.name,
+      package: "rich_editor",
+    );
+    setState(() => _fontName = value.name);
   }
 
   void _setFontSize(double size) {
@@ -260,9 +277,13 @@ class _FormatToolbarState extends State<FormatToolbar> {
         size: _size,
         onChange: _setFontSize,
       ),
+      new DropdownButton(
+        items: fonts,
+        onChanged: _setFont,
+        value: fontsMap[_fontName],
+      ),
       new Container(
-        height: 24.0,
-        width: 1.5,
+        width: 1.0,
         color: Theme.of(context).dividerColor,
       ),
       new IconButton(
@@ -295,7 +316,8 @@ class _FormatToolbarState extends State<FormatToolbar> {
       ),
       new IconButton(
         onPressed: _setOverline,
-        icon: new ImageIcon(new AssetImage("res/images/format_overline.png")),
+        icon: new ImageIcon(new AssetImage("res/images/format_overline.png",
+            package: "rich_editor")),
         color: _overline ? Theme.of(context).primaryColor : null,
       ),
     ];
@@ -303,14 +325,171 @@ class _FormatToolbarState extends State<FormatToolbar> {
     return new Container(
       alignment: Alignment.bottomCenter,
       height: 48.0,
-      color: new Color(0xFFE8E8E8),
-      child: new ListView.builder(
+      decoration: new BoxDecoration(
+        color: new Color(0xFFE8E8E8),
+      ),
+      child: new ListView(
         scrollDirection: Axis.horizontal,
-        itemBuilder: (context, index) => childrenList[index],
-        itemCount: childrenList.length,
+        children: childrenList,
       ),
     );
   }
+}
+
+const List<DropdownMenuItem<FontItem>> fonts =
+    const <DropdownMenuItem<FontItem>>[
+  const DropdownMenuItem(
+    child: const Text(
+      "Roboto",
+      style: const TextStyle(
+        color: Colors.black,
+        fontFamily: "Roboto",
+      ),
+    ),
+    value: _defaultFont,
+  ),
+  const DropdownMenuItem(
+    child: const Text(
+      "Berkshire Swash",
+      style: const TextStyle(
+        color: Colors.black,
+        fontFamily: "Berkshire Swash",
+        package: "rich_editor",
+      ),
+    ),
+    value: const FontItem(
+      name: "Berkshire Swash",
+      weights: const <int>[400],
+    ),
+  ),
+  const DropdownMenuItem(
+    child: const Text(
+      "Cinzel Decorative",
+      style: const TextStyle(
+        color: Colors.black,
+        fontFamily: "Cinzel Decorative",
+        package: "rich_editor",
+      ),
+    ),
+    value: const FontItem(
+      name: "Cinzel Decorative",
+      weights: const <int>[400, 700, 900],
+    ),
+  ),
+  const DropdownMenuItem(
+    child: const Text(
+      "Comfortaa",
+      style: const TextStyle(
+        color: Colors.black,
+        fontFamily: "Comfortaa",
+        package: "rich_editor",
+      ),
+    ),
+    value: const FontItem(
+      name: "Comfortaa",
+      weights: const <int>[300, 400, 700],
+    ),
+  ),
+  const DropdownMenuItem(
+    child: const Text(
+      "Indie Flower",
+      style: const TextStyle(
+          color: Colors.black,
+          fontFamily: "Indie Flower",
+          package: "rich_editor",
+          fontSize: 18.0),
+    ),
+    value: const FontItem(
+      name: "Indie Flower",
+      weights: const <int>[400],
+    ),
+  ),
+  const DropdownMenuItem(
+    child: const Text(
+      "Lobster",
+      style: const TextStyle(
+        color: Colors.black,
+        fontFamily: "Lobster",
+        package: "rich_editor",
+      ),
+    ),
+    value: const FontItem(
+      name: "Lobster",
+      weights: const <int>[400],
+    ),
+  ),
+  const DropdownMenuItem(
+    child: const Text(
+      "Satisfy",
+      style: const TextStyle(
+        color: Colors.black,
+        fontFamily: "Satisfy",
+        package: "rich_editor",
+      ),
+    ),
+    value: const FontItem(
+      name: "Satisfy",
+      weights: const <int>[400],
+    ),
+  ),
+  const DropdownMenuItem(
+    child: const Text(
+      "Tangerine",
+      style: const TextStyle(
+        color: Colors.black,
+        fontFamily: "Tangerine",
+        package: "rich_editor",
+        fontSize: 26.0,
+        fontWeight: FontWeight.w700,
+      ),
+    ),
+    value: const FontItem(
+      name: "Tangerine",
+      weights: const <int>[400, 700],
+    ),
+  ),
+];
+
+const Map<String, FontItem> fontsMap = const <String, FontItem>{
+  "Roboto": _defaultFont,
+  "Berkshire Swash": const FontItem(
+    name: "Berkshire Swash",
+    weights: const <int>[400],
+  ),
+  "Cinzel Decorative": const FontItem(
+    name: "Cinzel Decorative",
+    weights: const <int>[400, 700, 900],
+  ),
+  "Comfortaa": const FontItem(
+    name: "Comfortaa",
+    weights: const <int>[300, 400, 700],
+  ),
+  "Indie Flower": const FontItem(
+    name: "Indie Flower",
+    weights: const <int>[400],
+  ),
+  "Lobster": const FontItem(
+    name: "Lobster",
+    weights: const <int>[400],
+  ),
+  "Satisfy": const FontItem(
+    name: "Satisfy",
+    weights: const <int>[400],
+  ),
+  "Tangerine": const FontItem(
+    name: "Tangerine",
+    weights: const <int>[400, 700],
+  ),
+};
+
+class FontItem {
+  const FontItem({@required this.name, @required this.weights});
+
+  final String name;
+  final List<int> weights;
+
+  @override
+  String toString() => "FontItem {name: \"$name\", weights: \"$weights\"}";
 }
 
 class FontSizeWidget extends StatefulWidget {
