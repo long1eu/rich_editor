@@ -1,0 +1,17 @@
+name: rich_editor
+description: Rich editor for flutter platform
+version: 0.0.1
+author:
+homepage:
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_logger: ^0.0.1
+
+dev_dependencies:
+  test: ^0.12.0
+
+flutter:
+  assets:
+    - res/images/format_overline.png

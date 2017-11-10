@@ -1,0 +1,20 @@
+name: rich_editor_demo
+description: Demo app for the rich editor.
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  rich_editor:
+    path: ../rich_editor
+
+  cupertino_icons: ^0.1.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+
+
+flutter:
+
+  uses-material-design: true
