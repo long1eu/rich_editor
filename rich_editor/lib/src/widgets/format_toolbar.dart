@@ -264,6 +264,7 @@ class _FormatToolbarState extends State<FormatToolbar> {
       _size = _lastKnownStyle.fontSize;
       _fontSizeState.currentState.setSize(_lastKnownStyle.fontSize);
       _fontName = () {
+        // fontFamily come in this form > packages/rich_editor/Berkshire Swash
         var font = _lastKnownStyle.fontFamily;
         log.d(font);
         var index = font?.lastIndexOf("/");
@@ -272,8 +273,6 @@ class _FormatToolbarState extends State<FormatToolbar> {
         else
           return font;
       }();
-
-      log.d(_fontName);
       _textColor = _lastKnownStyle.color;
     });
   }

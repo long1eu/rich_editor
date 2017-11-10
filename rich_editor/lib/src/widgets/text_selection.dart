@@ -6,9 +6,9 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/rendering.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter/services.dart';
+import 'package:rich_editor/src/rendering/rich_editable.dart';
 import 'package:rich_editor/src/services/text_input.dart';
 
 /// Which type of selection handle to be displayed.
@@ -196,7 +196,7 @@ class TextSelectionOverlay implements TextSelectionDelegate {
   // TODO(mpcomplete): what if the renderObject is removed or replaced, or
   // moves? Not sure what cases I need to handle, or how to handle them.
   /// The editable line in which the selected text is being displayed.
-  final RenderEditable renderObject;
+  final RenderRichEditable renderObject;
 
   /// Called when the the selection changes.
   ///
@@ -422,7 +422,7 @@ class _TextSelectionHandleOverlay extends StatefulWidget {
   final TextSelection selection;
   final _TextSelectionHandlePosition position;
   final LayerLink layerLink;
-  final RenderEditable renderObject;
+  final RenderRichEditable renderObject;
   final ValueChanged<TextSelection> onSelectionHandleChanged;
   final VoidCallback onSelectionHandleTapped;
   final TextSelectionControls selectionControls;

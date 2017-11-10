@@ -7,11 +7,12 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart'
     hide TextSelectionControls, TextSelectionOverlay;
-import 'package:flutter/rendering.dart';
+import 'package:flutter/rendering.dart' show ViewportOffset;
 import 'package:flutter/services.dart'
-    hide TextInputClient, TextInputConnection, TextInput;
+    show TextRange, TextInputAction, TextInputConfiguration;
 import 'package:flutter_logger/flutter_logger.dart';
 import 'package:rich_editor/src/extensions.dart';
+import 'package:rich_editor/src/rendering/rich_editable.dart';
 import 'package:rich_editor/src/services/rich_text_parser.dart';
 import 'package:rich_editor/src/services/text_input.dart';
 import 'package:rich_editor/src/widgets/text_selection.dart';
@@ -168,7 +169,6 @@ class RichEditableText extends StatefulWidget {
     @required this.controller,
     @required this.styleController,
     @required this.focusNode,
-    this.obscureText: false,
     this.autocorrect: true,
     @required this.style,
     @required this.cursorColor,
@@ -186,7 +186,6 @@ class RichEditableText extends StatefulWidget {
   })
       : assert(controller != null),
         assert(focusNode != null),
-        assert(obscureText != null),
         assert(autocorrect != null),
         assert(style != null),
         assert(cursorColor != null),
@@ -204,11 +203,6 @@ class RichEditableText extends StatefulWidget {
 
   /// Controls whether this widget has keyboard focus.
   final FocusNode focusNode;
-
-  /// Whether to hide the text being edited (e.g., for passwords).
-  ///
-  /// Defaults to false.
-  final bool obscureText;
 
   /// Whether to enable autocorrection.
   ///
@@ -294,8 +288,6 @@ class RichEditableText extends StatefulWidget {
     description.add(new DiagnosticsProperty<RichTextEditingController>(
         'controller', controller));
     description.add(new DiagnosticsProperty<FocusNode>('focusNode', focusNode));
-    description.add(new DiagnosticsProperty<bool>('obscureText', obscureText,
-        defaultValue: false));
     description.add(new DiagnosticsProperty<bool>('autocorrect', autocorrect,
         defaultValue: true));
     style?.debugFillProperties(description);
@@ -525,7 +517,6 @@ class RichEditableTextState extends State<RichEditableText>
           this,
           new TextInputConfiguration(
               inputType: widget.keyboardType,
-              obscureText: widget.obscureText,
               autocorrect: widget.autocorrect,
               inputAction: widget.keyboardType == TextInputType.multiline
                   ? TextInputAction.newline
@@ -582,8 +573,8 @@ class RichEditableTextState extends State<RichEditableText>
     }
   }
 
-  void _handleSelectionChanged(
-      TextSelection selection, RenderEditable renderObject, bool longPress) {
+  void _handleSelectionChanged(TextSelection selection,
+      RenderRichEditable renderObject, bool longPress) {
     widget.controller.selection = selection;
 
     // Update style when user taps on a specific location.
@@ -723,9 +714,6 @@ class RichEditableTextState extends State<RichEditableText>
     });
   }
 
-
-
-
   void requestFocus() {
     FocusScope.of(context).requestFocus(widget.focusNode);
     restoreKeyboard = true;
@@ -787,7 +775,6 @@ class RichEditableTextState extends State<RichEditableText>
                 1.0,
             textAlign: widget.textAlign,
             textDirection: _textDirection,
-            obscureText: widget.obscureText,
             obscureShowCharacterAtIndex: _obscureShowCharTicksPending > 0
                 ? _obscureLatestCharIndex
                 : null,
@@ -841,8 +828,8 @@ class _RichEditable extends LeafRenderObjectWidget {
   final CaretChangedHandler onCaretChanged;
 
   @override
-  RenderEditable createRenderObject(BuildContext context) {
-    return new RenderEditable(
+  RenderRichEditable createRenderObject(BuildContext context) {
+    return new RenderRichEditable(
       text: _styledTextSpan,
       cursorColor: cursorColor,
       showCursor: showCursor,
@@ -859,7 +846,8 @@ class _RichEditable extends LeafRenderObjectWidget {
   }
 
   @override
-  void updateRenderObject(BuildContext context, RenderEditable renderObject) {
+  void updateRenderObject(
+      BuildContext context, RenderRichEditable renderObject) {
     renderObject
       ..text = _styledTextSpan
       ..cursorColor = cursorColor
