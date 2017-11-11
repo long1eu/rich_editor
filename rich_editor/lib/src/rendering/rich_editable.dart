@@ -9,7 +9,8 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
-
+import 'package:flutter_logger/flutter_logger.dart';
+import 'package:rich_editor/src/extensions.dart';
 
 const double _kCaretGap = 1.0; // pixels
 const double _kCaretHeightOffset = 2.0; // pixels
@@ -136,6 +137,8 @@ class RenderRichEditable extends RenderBox {
       ..onLongPress = _handleLongPress;
   }
 
+  Log log = new Log("RenderRichEditable");
+
   /// Called when the selection changes.
   SelectionChangedHandler onSelectionChanged;
 
@@ -159,9 +162,9 @@ class RenderRichEditable extends RenderBox {
   /// The text to display.
   TextSpan get text => _textPainter.text;
   final TextPainter _textPainter;
+
   set text(TextSpan value) {
-    if (_textPainter.text == value)
-      return;
+    if (_textPainter.text == value) return;
     _textPainter.text = value;
     markNeedsTextLayout();
   }
@@ -170,10 +173,10 @@ class RenderRichEditable extends RenderBox {
   ///
   /// This must not be null.
   TextAlign get textAlign => _textPainter.textAlign;
+
   set textAlign(TextAlign value) {
     assert(value != null);
-    if (_textPainter.textAlign == value)
-      return;
+    if (_textPainter.textAlign == value) return;
     _textPainter.textAlign = value;
     markNeedsPaint();
   }
@@ -192,10 +195,10 @@ class RenderRichEditable extends RenderBox {
   ///
   /// This must not be null.
   TextDirection get textDirection => _textPainter.textDirection;
+
   set textDirection(TextDirection value) {
     assert(value != null);
-    if (_textPainter.textDirection == value)
-      return;
+    if (_textPainter.textDirection == value) return;
     _textPainter.textDirection = value;
     markNeedsTextLayout();
   }
@@ -203,9 +206,9 @@ class RenderRichEditable extends RenderBox {
   /// The color to use when painting the cursor.
   Color get cursorColor => _cursorColor;
   Color _cursorColor;
+
   set cursorColor(Color value) {
-    if (_cursorColor == value)
-      return;
+    if (_cursorColor == value) return;
     _cursorColor = value;
     markNeedsPaint();
   }
@@ -213,15 +216,13 @@ class RenderRichEditable extends RenderBox {
   /// Whether to paint the cursor.
   ValueNotifier<bool> get showCursor => _showCursor;
   ValueNotifier<bool> _showCursor;
+
   set showCursor(ValueNotifier<bool> value) {
     assert(value != null);
-    if (_showCursor == value)
-      return;
-    if (attached)
-      _showCursor.removeListener(markNeedsPaint);
+    if (_showCursor == value) return;
+    if (attached) _showCursor.removeListener(markNeedsPaint);
     _showCursor = value;
-    if (attached)
-      _showCursor.addListener(markNeedsPaint);
+    if (attached) _showCursor.addListener(markNeedsPaint);
     markNeedsPaint();
   }
 
@@ -237,11 +238,11 @@ class RenderRichEditable extends RenderBox {
   /// also controls the height of the actual editing widget.
   int get maxLines => _maxLines;
   int _maxLines;
+
   /// The value may be null. If it is not null, then it must be greater than zero.
   set maxLines(int value) {
     assert(value == null || value > 0);
-    if (maxLines == value)
-      return;
+    if (maxLines == value) return;
     _maxLines = value;
     markNeedsTextLayout();
   }
@@ -249,9 +250,9 @@ class RenderRichEditable extends RenderBox {
   /// The color to use when painting the selection.
   Color get selectionColor => _selectionColor;
   Color _selectionColor;
+
   set selectionColor(Color value) {
-    if (_selectionColor == value)
-      return;
+    if (_selectionColor == value) return;
     _selectionColor = value;
     markNeedsPaint();
   }
@@ -261,10 +262,10 @@ class RenderRichEditable extends RenderBox {
   /// For example, if the text scale factor is 1.5, text will be 50% larger than
   /// the specified font size.
   double get textScaleFactor => _textPainter.textScaleFactor;
+
   set textScaleFactor(double value) {
     assert(value != null);
-    if (_textPainter.textScaleFactor == value)
-      return;
+    if (_textPainter.textScaleFactor == value) return;
     _textPainter.textScaleFactor = value;
     markNeedsTextLayout();
   }
@@ -274,9 +275,9 @@ class RenderRichEditable extends RenderBox {
   /// The region of text that is selected, if any.
   TextSelection get selection => _selection;
   TextSelection _selection;
+
   set selection(TextSelection value) {
-    if (_selection == value)
-      return;
+    if (_selection == value) return;
     _selection = value;
     _selectionRects = null;
     markNeedsPaint();
@@ -289,15 +290,13 @@ class RenderRichEditable extends RenderBox {
   /// visible by shifting the text by the given offset before clipping.
   ViewportOffset get offset => _offset;
   ViewportOffset _offset;
+
   set offset(ViewportOffset value) {
     assert(value != null);
-    if (_offset == value)
-      return;
-    if (attached)
-      _offset.removeListener(markNeedsPaint);
+    if (_offset == value) return;
+    if (attached) _offset.removeListener(markNeedsPaint);
     _offset = value;
-    if (attached)
-      _offset.addListener(markNeedsPaint);
+    if (attached) _offset.addListener(markNeedsPaint);
     markNeedsLayout();
   }
 
@@ -368,13 +367,18 @@ class RenderRichEditable extends RenderBox {
 
     if (selection.isCollapsed) {
       // TODO(mpcomplete): This doesn't work well at an RTL/LTR boundary.
-      final Offset caretOffset = _textPainter.getOffsetForCaret(selection.extent, _caretPrototype);
-      final Offset start = new Offset(0.0, _preferredLineHeight) + caretOffset + paintOffset;
+      final Offset caretOffset =
+          _textPainter.getOffsetForCaret(selection.extent, _caretPrototype);
+      final Offset start =
+          new Offset(0.0, _preferredLineHeight) + caretOffset + paintOffset;
       return <TextSelectionPoint>[new TextSelectionPoint(start, null)];
     } else {
-      final List<ui.TextBox> boxes = _textPainter.getBoxesForSelection(selection);
-      final Offset start = new Offset(boxes.first.start, boxes.first.bottom) + paintOffset;
-      final Offset end = new Offset(boxes.last.end, boxes.last.bottom) + paintOffset;
+      final List<ui.TextBox> boxes =
+          _textPainter.getBoxesForSelection(selection);
+      final Offset start =
+          new Offset(boxes.first.start, boxes.first.bottom) + paintOffset;
+      final Offset end =
+          new Offset(boxes.last.end, boxes.last.bottom) + paintOffset;
       return <TextSelectionPoint>[
         new TextSelectionPoint(start, boxes.first.direction),
         new TextSelectionPoint(end, boxes.last.direction),
@@ -393,9 +397,13 @@ class RenderRichEditable extends RenderBox {
   /// position.
   Rect getLocalRectForCaret(TextPosition caretPosition) {
     _layoutText(constraints.maxWidth);
-    final Offset caretOffset = _textPainter.getOffsetForCaret(caretPosition, _caretPrototype);
+    final Offset caretOffset =
+        _textPainter.getOffsetForCaret(caretPosition, _caretPrototype);
+
     // This rect is the same as _caretPrototype but without the vertical padding.
-    return new Rect.fromLTWH(0.0, 0.0, _kCaretWidth, _preferredLineHeight).shift(caretOffset + _paintOffset);
+    var size = Extensions.maxFontSize(text);
+    return new Rect.fromLTWH(0.0, 0.0, _kCaretWidth, size)
+        .shift(caretOffset + _paintOffset);
   }
 
   @override
@@ -414,8 +422,7 @@ class RenderRichEditable extends RenderBox {
   double get _preferredLineHeight => _textPainter.preferredLineHeight;
 
   double _preferredHeight(double width) {
-    if (maxLines != null)
-      return _preferredLineHeight * maxLines;
+    if (maxLines != null) return _preferredLineHeight * maxLines;
     if (width == double.INFINITY) {
       final String text = _textPainter.text.toPlainText();
       int lines = 1;
@@ -456,6 +463,7 @@ class RenderRichEditable extends RenderBox {
 
   Offset _lastTapDownPosition;
   Offset _longPressPosition;
+
   void _handleTapDown(TapDownDetails details) {
     _lastTapDownPosition = details.globalPosition + -_paintOffset;
   }
@@ -466,11 +474,10 @@ class RenderRichEditable extends RenderBox {
     final Offset globalPosition = _lastTapDownPosition;
     _lastTapDownPosition = null;
     if (onSelectionChanged != null) {
-      final TextPosition position = _textPainter.getPositionForOffset(globalToLocal(globalPosition));
+      final TextPosition position =
+          _textPainter.getPositionForOffset(globalToLocal(globalPosition));
       onSelectionChanged(new TextSelection.fromPosition(position), this, false);
     }
-
-    _measureCaret();
   }
 
   void _handleTapCancel() {
@@ -485,10 +492,10 @@ class RenderRichEditable extends RenderBox {
     _longPressPosition = null;
 
     if (onSelectionChanged != null) {
-      final TextPosition position = _textPainter.getPositionForOffset(globalToLocal(globalPosition));
+      final TextPosition position =
+          _textPainter.getPositionForOffset(globalToLocal(globalPosition));
       onSelectionChanged(_selectWordAtOffset(position), this, true);
     }
-    _measureCaret();
   }
 
   TextSelection _selectWordAtOffset(TextPosition position) {
@@ -500,12 +507,9 @@ class RenderRichEditable extends RenderBox {
     return new TextSelection(baseOffset: word.start, extentOffset: word.end);
   }
 
-  Rect _caretPrototype;
-
   void _layoutText(double constraintWidth) {
     assert(constraintWidth != null);
-    if (_textLayoutLastWidth == constraintWidth)
-      return;
+    if (_textLayoutLastWidth == constraintWidth) return;
     final double caretMargin = _kCaretGap + _kCaretWidth;
     final double availableWidth = math.max(0.0, constraintWidth - caretMargin);
     final double maxWidth = _isMultiline ? availableWidth : double.INFINITY;
@@ -513,18 +517,24 @@ class RenderRichEditable extends RenderBox {
     _textLayoutLastWidth = constraintWidth;
   }
 
-  void _measureCaret(){
-    markNeedsTextLayout();
+  Rect _caretPrototype;
+
+  setCaretPrototype(double fontSize) {
+    _caretPrototype = new Rect.fromLTWH(0.0, _kCaretHeightOffset, _kCaretWidth,
+        fontSize ?? _preferredLineHeight - 2.0 * _kCaretHeightOffset);
   }
 
   @override
   void performLayout() {
     _layoutText(constraints.maxWidth);
-    var fontSize = text.getSpanForPosition(
-        new TextPosition(offset: selection.baseOffset - 1,
-            affinity: selection.affinity))?.style?.fontSize ??
+    var fontSize = text
+            .getSpanForPosition(new TextPosition(
+                offset: selection.baseOffset - 1, affinity: selection.affinity))
+            ?.style
+            ?.fontSize ??
         _preferredLineHeight;
-    _caretPrototype = new Rect.fromLTWH(0.0, _kCaretHeightOffset, _kCaretWidth, fontSize - 2.0 * _kCaretHeightOffset);
+    _caretPrototype = new Rect.fromLTWH(0.0, _kCaretHeightOffset, _kCaretWidth,
+        fontSize - 2.0 * _kCaretHeightOffset);
 
     _selectionRects = null;
     // We grab _textPainter.size here because assigning to `size` on the next
@@ -536,8 +546,11 @@ class RenderRichEditable extends RenderBox {
     // though we currently don't use those here.
     // See also RenderParagraph which has a similar issue.
     final Size textPainterSize = _textPainter.size;
-    size = new Size(constraints.maxWidth, constraints.constrainHeight(_preferredHeight(constraints.maxWidth)));
-    final Size contentSize = new Size(textPainterSize.width + _kCaretGap + _kCaretWidth, textPainterSize.height);
+    size = new Size(constraints.maxWidth,
+        constraints.constrainHeight(_preferredHeight(constraints.maxWidth)));
+    final Size contentSize = new Size(
+        textPainterSize.width + _kCaretGap + _kCaretWidth,
+        textPainterSize.height);
     final double _maxScrollExtent = _getMaxScrollExtent(contentSize);
     _hasVisualOverflow = _maxScrollExtent > 0.0;
     offset.applyViewportDimension(_viewportExtent);
@@ -546,14 +559,14 @@ class RenderRichEditable extends RenderBox {
 
   void _paintCaret(Canvas canvas, Offset effectiveOffset) {
     assert(_textLayoutLastWidth == constraints.maxWidth);
-    final Offset caretOffset = _textPainter.getOffsetForCaret(_selection.extent, _caretPrototype);
+    final Offset caretOffset =
+        _textPainter.getOffsetForCaret(_selection.extent, _caretPrototype);
     final Paint paint = new Paint()..color = _cursorColor;
     final Rect caretRect = _caretPrototype.shift(caretOffset + effectiveOffset);
     canvas.drawRect(caretRect, paint);
     if (caretRect != _lastCaretRect) {
       _lastCaretRect = caretRect;
-      if (onCaretChanged != null)
-        onCaretChanged(caretRect);
+      if (onCaretChanged != null) onCaretChanged(caretRect);
     }
   }
 
@@ -585,23 +598,28 @@ class RenderRichEditable extends RenderBox {
   void paint(PaintingContext context, Offset offset) {
     _layoutText(constraints.maxWidth);
     if (_hasVisualOverflow)
-      context.pushClipRect(needsCompositing, offset, Offset.zero & size, _paintContents);
+      context.pushClipRect(
+          needsCompositing, offset, Offset.zero & size, _paintContents);
     else
       _paintContents(context, offset);
   }
 
   @override
-  Rect describeApproximatePaintClip(RenderObject child) => _hasVisualOverflow ? Offset.zero & size : null;
+  Rect describeApproximatePaintClip(RenderObject child) =>
+      _hasVisualOverflow ? Offset.zero & size : null;
 
   @override
   void debugFillProperties(DiagnosticPropertiesBuilder description) {
     super.debugFillProperties(description);
     description.add(new DiagnosticsProperty<Color>('cursorColor', cursorColor));
-    description.add(new DiagnosticsProperty<ValueNotifier<bool>>('showCursor', showCursor));
+    description.add(
+        new DiagnosticsProperty<ValueNotifier<bool>>('showCursor', showCursor));
     description.add(new IntProperty('maxLines', maxLines));
-    description.add(new DiagnosticsProperty<Color>('selectionColor', selectionColor));
+    description
+        .add(new DiagnosticsProperty<Color>('selectionColor', selectionColor));
     description.add(new DoubleProperty('textScaleFactor', textScaleFactor));
-    description.add(new DiagnosticsProperty<TextSelection>('selection', selection));
+    description
+        .add(new DiagnosticsProperty<TextSelection>('selection', selection));
     description.add(new DiagnosticsProperty<ViewportOffset>('offset', offset));
   }
 

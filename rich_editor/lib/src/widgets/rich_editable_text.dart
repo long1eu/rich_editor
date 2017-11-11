@@ -10,6 +10,7 @@ import 'package:flutter/material.dart'
 import 'package:flutter/rendering.dart' show ViewportOffset;
 import 'package:flutter/services.dart'
     show TextRange, TextInputAction, TextInputConfiguration;
+import 'package:flutter/src/services/text_editing.dart';
 import 'package:flutter_logger/flutter_logger.dart';
 import 'package:rich_editor/src/extensions.dart';
 import 'package:rich_editor/src/rendering/rich_editable.dart';
@@ -493,7 +494,7 @@ class RichEditableTextState extends State<RichEditableText>
 
   bool get _isMultiline => widget.maxLines != 1;
 
-// Calculate the new scroll offset so the cursor remains visible.
+  // Calculate the new scroll offset so the cursor remains visible.
   double _getScrollOffsetForCaret(Rect caretRect) {
     final double caretStart = _isMultiline ? caretRect.top : caretRect.left;
     final double caretEnd = _isMultiline ? caretRect.bottom : caretRect.right;
@@ -766,6 +767,7 @@ class RichEditableTextState extends State<RichEditableText>
           child: new _RichEditable(
             editingValue: _editingValue,
             style: widget.style,
+            currentStyle: _styleController.value,
             cursorColor: widget.cursorColor,
             showCursor: _showCursor,
             maxLines: widget.maxLines,
@@ -794,6 +796,7 @@ class _RichEditable extends LeafRenderObjectWidget {
     Key key,
     this.editingValue,
     this.style,
+    this.currentStyle,
     this.cursorColor,
     this.showCursor,
     this.maxLines,
@@ -813,6 +816,7 @@ class _RichEditable extends LeafRenderObjectWidget {
 
   final RichTextEditingValue editingValue;
   final TextStyle style;
+  final TextStyle currentStyle;
   final Color cursorColor;
   final ValueNotifier<bool> showCursor;
   final int maxLines;
@@ -861,22 +865,20 @@ class _RichEditable extends LeafRenderObjectWidget {
       ..offset = offset
       ..onSelectionChanged = onSelectionChanged
       ..onCaretChanged = onCaretChanged;
+
+    renderObject.setCaretPrototype(currentStyle.fontSize);
   }
 
   TextSpan get _styledTextSpan {
     if (editingValue.composing.isValid) {
-      final TextStyle composingStyle =
-          style.merge(const TextStyle(decoration: TextDecoration.underline));
-
-      //value.textSpan.getSpanForPosition(position);
-
-      /*return new TextSpan(style: style, children: <TextSpan>[
-        new TextSpan(text: value.composing.textBefore(value.textSpan)),
-        new TextSpan(
-            style: composingStyle,
-            text: value.composing.textInside(value.textSpan)),
-        new TextSpan(text: value.composing.textAfter(value.textSpan))
-      ]);*/
+      return RichTextEditingValueParser.updateSpansWithStyle(
+          editingValue.value,
+          new TextSelection(
+            baseOffset: editingValue.composing.start,
+            extentOffset: editingValue.composing.end,
+          ),
+          currentStyle,
+          const TextStyle(decoration: TextDecoration.underline));
     }
 
     return editingValue.value;

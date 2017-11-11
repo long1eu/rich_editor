@@ -46,6 +46,18 @@ class Extensions {
     return length;
   }
 
+  /// Return the max fontSize from a given [TextSpan] tree.
+  static maxFontSize(TextSpan textSpan) {
+    textSpan.debugAssertIsValid();
+    double size = 0.0;
+    textSpan.visitTextSpan((TextSpan span) {
+      var currentSize = span.style?.fontSize ?? -1.0;
+      if (currentSize > size) size = currentSize;
+      return true;
+    });
+    return size;
+  }
+
   /// Creates a copy of this [TextSpan] but with the given fields replaced with the new values.
   static TextSpan copySpanWith(
       {@required TextSpan base,
