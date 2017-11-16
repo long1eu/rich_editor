@@ -8,7 +8,8 @@ dependencies:
   flutter:
     sdk: flutter
   flutter_logger: ^0.0.1
-  flutter_color_picker: ^0.0.1
+  material_color_picker:
+    path: ../../material_color_picker
 
 flutter:
 

@@ -243,9 +243,9 @@ class RichTextFieldState extends State<RichTextField> {
     _editableTextKey.currentState?.requestKeyboard();
   }
 
-
-  void prepareForFocusLoss() {
+  void prepareForFocusLoss({bool closeKeyboardIfNeeded = false}) {
     _editableTextKey.currentState?.saveValueBeforeFocusLoss = true;
+    _editableTextKey.currentState?.closeKeyboardIfNeeded = closeKeyboardIfNeeded;
   }
 
   void restoreFocus() {

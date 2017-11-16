@@ -7,6 +7,7 @@ import 'dart:ui' as ui show TextBox;
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_logger/flutter_logger.dart';
@@ -22,7 +23,8 @@ final String _kZeroWidthSpace = new String.fromCharCode(0x200B);
 /// (including the cursor location).
 ///
 /// Used by [RenderRichEditable.onSelectionChanged].
-typedef void SelectionChangedHandler(TextSelection selection, RenderRichEditable renderObject, bool longPress);
+typedef void SelectionChangedHandler(
+    TextSelection selection, RenderRichEditable renderObject, bool longPress);
 
 /// Signature for the callback that reports when the caret location changes.
 ///
@@ -37,8 +39,7 @@ class TextSelectionPoint {
   /// Creates a description of a point in a text selection.
   ///
   /// The [point] argument must not be null.
-  const TextSelectionPoint(this.point, this.direction)
-      : assert(point != null);
+  const TextSelectionPoint(this.point, this.direction) : assert(point != null);
 
   /// Coordinates of the lower left or lower right corner of the selection,
   /// relative to the top left of the [RenderRichEditable] object.
@@ -111,8 +112,10 @@ class RenderRichEditable extends RenderBox {
     @required ViewportOffset offset,
     this.onSelectionChanged,
     this.onCaretChanged,
-  }) : assert(textAlign != null),
-        assert(textDirection != null, 'RenderEditable created without a textDirection.'),
+  })
+      : assert(textAlign != null),
+        assert(textDirection != null,
+            'RenderEditable created without a textDirection.'),
         assert(maxLines == null || maxLines > 0),
         assert(textScaleFactor != null),
         assert(offset != null),

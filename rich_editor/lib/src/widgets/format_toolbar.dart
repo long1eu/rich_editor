@@ -1,7 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart' hide DropdownButton, DropdownMenuItem;
-import 'package:flutter_color_picker/flutter_color_picker.dart';
 import 'package:flutter_logger/flutter_logger.dart';
+import 'package:material_color_picker/material_color_picker.dart';
 import 'package:rich_editor/src/extensions.dart';
 import 'package:rich_editor/src/material/dropdown.dart';
 import 'package:rich_editor/src/material/rich_text_field.dart';
@@ -81,15 +81,11 @@ class _FormatToolbarState extends State<FormatToolbar> {
     setState(() => _fontName = value.name);
   }
 
-  _setTextColor() async {
-    widget._richTextFieldState.currentState.prepareForFocusLoss();
-    Color color = await showDialog(
-        context: context, child: new AccentColorPickerDialog());
+  _setTextColor(Color color) {
     widget._richTextFieldState.currentState.restoreFocus();
-    log.d(color);
+    if (color == null) return;
 
     _styleController.value = _styleController.value.copyWith(color: color);
-
     setState(() => _textColor = color);
   }
 
@@ -329,12 +325,20 @@ class _FormatToolbarState extends State<FormatToolbar> {
         onChanged: _setFont,
         value: fontsMap[_fontName],
       ),
-      new IconButton(
-        onPressed: _setTextColor,
-        icon: new Icon(
-          Icons.format_color_text,
+      new ColorPickerButton(
+        button: new Center(
+          child: new Icon(
+            Icons.format_color_text,
+            color: _textColor,
+          ),
         ),
-        color: _textColor,
+        currentColor: _textColor,
+        onColor: _setTextColor,
+        onShow: (type) {
+          widget._richTextFieldState.currentState.prepareForFocusLoss(
+              closeKeyboardIfNeeded:
+                  type == DisplayType.bottomSheet ? true : false);
+        },
       ),
       new IconButton(
         onPressed: _setBold,

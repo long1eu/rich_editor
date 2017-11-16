@@ -101,7 +101,7 @@ class Extensions {
       decoration: decoration ?? base.decoration,
       decorationColor: decorationColor ?? base.decorationColor,
       decorationStyle: decorationStyle ?? base.decorationStyle,
-      package: package ?? base.package,
+      package: package ?? "rich_editor",
     );
   }
 

@@ -10,7 +10,6 @@ import 'package:flutter/material.dart'
 import 'package:flutter/rendering.dart' show ViewportOffset;
 import 'package:flutter/services.dart'
     show TextRange, TextInputAction, TextInputConfiguration;
-import 'package:flutter/src/services/text_editing.dart';
 import 'package:flutter_logger/flutter_logger.dart';
 import 'package:rich_editor/src/extensions.dart';
 import 'package:rich_editor/src/rendering/rich_editable.dart';
@@ -327,6 +326,8 @@ class RichEditableTextState extends State<RichEditableText>
   /// Don't dispose the selection and the selection overlay if the focus is lost
   /// because of toolbar event.
   bool saveValueBeforeFocusLoss = false;
+
+  bool closeKeyboardIfNeeded = true;
 
   /// Restore the keyboard when the focus is regained, after being lost by an
   /// toolbar event.
@@ -723,11 +724,14 @@ class RichEditableTextState extends State<RichEditableText>
   void _handleFocusChanged() {
     log.d("_handleFocusChanged hasFocus: $_hasFocus $_hasInputConnection");
 
-    _openOrCloseInputConnectionIfNeeded();
-    _startOrStopCursorTimerIfNeeded();
+    if (closeKeyboardIfNeeded) {
+      _openOrCloseInputConnectionIfNeeded();
+      _startOrStopCursorTimerIfNeeded();
+    }
 
     if (restoreKeyboard && _hasFocus) {
       restoreKeyboard = false;
+      closeKeyboardIfNeeded = true;
       _openInputConnection();
     }
 
