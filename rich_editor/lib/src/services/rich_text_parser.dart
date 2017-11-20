@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
@@ -13,10 +15,12 @@ class RichTextEditingValueParser {
       @required RichTextEditingValue newValue,
       @required TextStyle style}) {
     if (_equalTextValue(oldValue, newValue)) {
-      log.d("equalTextValue");
+      log.d(
+          "Same text value and same selection and composing. We are not changing anything.");
       return oldValue;
     } else if (_sameTextDiffSelection(oldValue, newValue)) {
-      log.d("sameTextDiffSelection");
+      log.d(
+          "Same text, but different selection or composing. Update only that.");
       return newValue.copyWith(value: oldValue.value);
     }
 
@@ -24,317 +28,586 @@ class RichTextEditingValueParser {
     final TextSelection currentSelection = oldValue.selection;
     final TextSelection newSelection = newValue.selection;
 
-    log.d("has children: ${currentSpan.children != null}");
+    log.d("Current span has children: ${currentSpan.children != null}");
 
     /// If the root [TextSpan] doesn't have any children we can simply set the
     /// root text to the new value.
     ///
     /// Otherwise we look to the span that changed.
     if (currentSpan.children == null) {
-      log.d("same style: ${currentSpan.style == style}");
+      log.d("The style is the same: ${currentSpan.style == style}");
 
       /// If the user didn't changed the default [TextStyle] we update the root
       /// text value with the new value. Also if the user DID changed the
       /// [style] but is deleting, we just set the new value.
       ///
       /// Otherwise we create a new [TextSpan] with the added text
-      if (currentSpan.style == style ||
-          currentSelection.baseOffset > newSelection.baseOffset) {
-        log.d("returnValue = newValue");
+      if (currentSpan.style == style // no change in style, no need to update
+              ||
+              currentSelection.baseOffset >
+                  newSelection.baseOffset // text was deleted, no need to update
+          ) {
+        log.d("The user did change the default style or has deleted text.");
       } else {
         var text = newValue.text
             .substring(currentSelection.baseOffset, newSelection.baseOffset);
-        log.d(text);
 
         /// If the insert position, indicated by [currentSelection.baseOffset]
         /// is contained in the text of the root [TextSpan], we recreate the
         /// root with the first part of the root text, and the below children:
         ///
         /// [1]: a new [TextSpan] with the text added by the user and the
-        /// [style] style;
+        /// [style];
         ///
         /// [2]: another [TextSpan] with the last part of root text, but keeping
         /// the  same style as the root.
-        if (oldValue.value.text.length > currentSelection.baseOffset) {
-          var children = [
-            new TextSpan(style: style, text: text),
-            new TextSpan(
+        if (currentSpan.text.length > currentSelection.baseOffset) {
+          var textBefore = currentSelection.textBefore(currentSpan.text);
+          var textAfter = currentSelection.textAfter(currentSpan.text);
+
+          log.d("A new child was added at ${textBefore.isEmpty
+              ? "start"
+              : "middle"}.");
+
+          if (textBefore.isEmpty) {
+            newValue = newValue.copyWith(
+              value: new TextSpan(
+                text: "",
                 style: currentSpan.style,
-                text: currentSelection.textAfter(currentSpan.text))
-          ];
-
-          newValue = newValue.copyWith(
+                children: [
+                  new TextSpan(
+                    text: text,
+                    style: style,
+                  ),
+                  new TextSpan(
+                    text: textAfter,
+                    style: currentSpan.style,
+                  ),
+                ],
+              ),
+            );
+          } else {
+            newValue = newValue.copyWith(
               value: new TextSpan(
-                  style: currentSpan.style,
-                  text: currentSelection.textBefore(currentSpan.text),
-                  children: children));
+                text: textBefore,
+                style: currentSpan.style,
+                children: [
+                  new TextSpan(
+                    text: text,
+                    style: style,
+                  ),
+                  new TextSpan(
+                    text: textAfter,
+                    style: currentSpan.style,
+                  ),
+                ],
+              ),
+            );
+          }
         } else {
-          var children = [new TextSpan(style: style, text: text)];
-          log.d(children.first.style);
+          log.d("A new child was added at end.");
           newValue = newValue.copyWith(
-              value: new TextSpan(
-                  style: currentSpan.style,
-                  text: currentSpan.text,
-                  children: children));
-
-          log.d(newValue.value.children.length);
+            value: new TextSpan(
+              style: currentSpan.style,
+              text: currentSpan.text,
+              children: [
+                new TextSpan(
+                  text: text,
+                  style: style,
+                ),
+              ],
+            ),
+          );
         }
       }
     } else {
       /// Something was added
       if (currentSelection.baseOffset < newSelection.baseOffset) {
-        log.d("currentTextSpan.last.style: ${currentSpan.children.last.style ==
-            style}");
+        log.d("The user added some text.");
 
-        String oldPlainText = oldValue.value.toPlainText();
+        String oldPlainText = currentSpan.toPlainText();
 
         /// If the insert position, indicated by [currentSelection.start] is
         /// contained in the [text] of the root [TextSpan], just update the text
         /// of the root element.
-        if (oldValue.value.text.length >= currentSelection.start) {
+        if (currentSpan.text.length >= currentSelection.start) {
           log.d(
               "----------------------------------------------ADD TO ROOT TEXT");
           var text = newValue.text
               .substring(currentSelection.start, newSelection.start);
 
-          newValue = newValue.copyWith(
+          var textBefore = currentSelection.textBefore(currentSpan.text);
+          var textAfter = currentSelection.textAfter(currentSpan.text);
+
+          if (currentSpan.style == style) {
+            log.d("same style");
+
+            newValue = newValue.copyWith(
               value: Extensions.copySpanWith(
-            base: oldValue.value,
-            text: currentSelection.textBefore(oldValue.value.text) +
-                text +
-                currentSelection.textAfter(oldValue.value.text),
-          ));
+                base: currentSpan,
+                text: textBefore + text + textAfter,
+              ),
+            );
+          } else {
+            log.d("different style");
+
+            if (textBefore.isEmpty) {
+              log.d("start");
+              List<TextSpan> children = [
+                new TextSpan(
+                  text: text,
+                  style: style,
+                ),
+                new TextSpan(
+                  text: currentSpan.text,
+                  style: currentSpan.style,
+                ),
+              ];
+
+              children.addAll(currentSpan.children);
+
+              newValue = newValue.copyWith(
+                value: new TextSpan(
+                  text: "",
+                  style: currentSpan.style,
+                  children: children,
+                ),
+              );
+            } else if (textAfter.isEmpty) {
+              log.d("end");
+
+              List<TextSpan> children = currentSpan.children.toList();
+              children.insert(
+                0,
+                new TextSpan(
+                  text: text,
+                  style: style,
+                ),
+              );
+
+              newValue = newValue.copyWith(
+                  value: Extensions.copySpanWith(
+                      base: currentSpan, children: children));
+            } else {
+              log.d("middle");
+
+              List<TextSpan> children = [
+                new TextSpan(
+                  text: text,
+                  style: style,
+                ),
+                new TextSpan(
+                  text: textAfter,
+                  style: currentSpan.style,
+                ),
+              ];
+
+              children.addAll(currentSpan.children);
+
+              newValue = newValue.copyWith(
+                value: new TextSpan(
+                  text: textBefore,
+                  style: currentSpan.style,
+                  children: children,
+                ),
+              );
+            }
+          }
         }
 
         /// If the insert position is in one of the children then we retrieve
         /// that child and find its start and end position in the parent. Then
         /// we update the text of that [TextSpan] with the new value.
-        else if (oldPlainText.length > currentSelection.start) {
+        else if (oldPlainText.length >= currentSelection.start) {
           log.d(
               "-----------------------------------------------ADD TO CHILDREN");
           var text = newValue.text
               .substring(currentSelection.start, newSelection.start);
-          log.d(text);
-          List<TextSpan> children = [];
+          List<TextSpan> children = currentSpan.children.toList();
+          TextSpan affectedSpan = Extensions.getSpanForPosition(
+              currentSpan, currentSelection.baseOffset);
 
-          /// We need a copy of the children list to avoid changing the
-          /// [oldValue] content. <b>Remove this and see what happens. :D</b>
-          currentSpan.children.forEach((it) => children.add(it));
-
-          var spanPosition = currentSelection.start - 1;
-          if (spanPosition == -1) spanPosition++;
-
-          TextSpan affectedSpan = currentSpan.getSpanForPosition(
-              new TextPosition(
-                  offset: currentSelection.start - 1,
-                  affinity: currentSelection.affinity));
-
+          log.d(affectedSpan);
           var index = children.indexOf(affectedSpan);
-          children.removeAt(index);
 
-          var affectedSpanStart =
-              Extensions.getOffsetInParent(currentSpan, affectedSpan);
-          var affectedSpanEnd = affectedSpanStart + affectedSpan.text.length;
+          TextSpan root;
+          //last span
+          if (index == children.length - 1) {
+            var index = children.indexOf(affectedSpan);
+            children.removeAt(index);
 
-          String beforeText = oldPlainText.substring(
-              affectedSpanStart, currentSelection.base.offset);
+            var affectedSpanStart =
+                Extensions.getOffsetInParent(currentSpan, affectedSpan);
 
-          String afterText = oldPlainText.substring(
-              currentSelection.base.offset, affectedSpanEnd);
+            String textBefore = oldPlainText.substring(
+                affectedSpanStart, currentSelection.base.offset);
 
-          /// If the user deliberately changed the style while on this span then
-          /// we honor this request by splitting the span and and adding the new
-          /// text with the selected style.
-          if (affectedSpan.style == style) {
-            log.d(
-                "----------------------------------------------------SAME STYLE");
-            affectedSpan = Extensions.copySpanWith(
-                base: affectedSpan, text: beforeText + text + afterText);
-            children.insert(index, affectedSpan);
+            String textAfter =
+                oldPlainText.substring(currentSelection.base.offset);
+
+            if (affectedSpan.style == style) {
+              log.d(
+                  "----------------------------------------------------SAME STYLE");
+              affectedSpan = Extensions.copySpanWith(
+                  base: affectedSpan, text: textBefore + text + textAfter);
+
+              children.add(affectedSpan);
+            } else {
+              log.d(
+                  "-----------------------------------------------DIFFERENT STYLE");
+              if (textBefore.isEmpty) {
+                log.d("start");
+                children.add(new TextSpan(
+                  text: text,
+                  style: style,
+                ));
+                children.add(affectedSpan);
+              } else if (textAfter.isEmpty) {
+                log.d("end");
+                children.add(affectedSpan);
+                children.add(new TextSpan(
+                  text: text,
+                  style: style,
+                ));
+              } else {
+                log.d("middle");
+                children.add(new TextSpan(
+                  text: textBefore,
+                  style: affectedSpan.style,
+                ));
+                children.add(new TextSpan(
+                  text: text,
+                  style: style,
+                ));
+                children.add(new TextSpan(
+                  text: textAfter,
+                  style: affectedSpan.style,
+                ));
+              }
+            }
+
+            root = Extensions.copySpanWith(
+              base: currentSpan,
+              children: children,
+            );
           } else {
-            log.d(
-                "-----------------------------------------------DIFFERENT STYLE");
-            children.insert(index,
-                Extensions.copySpanWith(base: affectedSpan, text: beforeText));
-            children.insert(
-                index + 1,
-                Extensions.copySpanWith(
-                    base: affectedSpan, text: text, style: style));
-            children.insert(index + 2,
-                Extensions.copySpanWith(base: affectedSpan, text: afterText));
+            var index = children.indexOf(affectedSpan);
+            children.removeAt(index);
+
+            var affectedSpanStart =
+                Extensions.getOffsetInParent(currentSpan, affectedSpan);
+
+            var affectedSpanEnd = affectedSpanStart + affectedSpan.text.length;
+
+            String textBefore = oldPlainText.substring(
+                affectedSpanStart, currentSelection.base.offset);
+
+            String textAfter = oldPlainText.substring(
+                currentSelection.base.offset, affectedSpanEnd);
+
+            if (affectedSpan.style == style) {
+              log.d(
+                  "----------------------------------------------------SAME STYLE");
+              affectedSpan = Extensions.copySpanWith(
+                  base: affectedSpan, text: textBefore + text + textAfter);
+
+              children.insert(index, affectedSpan);
+            } else {
+              log.d(
+                  "-----------------------------------------------DIFFERENT STYLE");
+              if (textBefore.isEmpty) {
+                assert(false);
+                log.d("start");
+                children.insert(
+                    index,
+                    new TextSpan(
+                      text: text,
+                      style: style,
+                    ));
+                children.insert(index + 1, affectedSpan);
+              } else if (textAfter.isEmpty) {
+                log.d("end");
+                children.insert(index, affectedSpan);
+
+                TextSpan nextSpan = children[index + 1];
+
+                if (nextSpan.style == style) {
+                  log.d(
+                      "----------------------------------------------------SAME STYLE");
+                  children.removeAt(index + 1);
+                  children.insert(
+                      index + 1,
+                      Extensions.copySpanWith(
+                        base: nextSpan,
+                        text: text + nextSpan.text,
+                      ));
+                } else {
+                  log.d(
+                      "-----------------------------------------------DIFFERENT STYLE");
+                  children.removeAt(index + 1);
+
+                  var nextSpanStart =
+                      Extensions.getOffsetInParent(currentSpan, nextSpan);
+
+                  var nextSpanEnd = nextSpanStart + nextSpan.text.length;
+
+                  String textBefore = oldPlainText.substring(
+                      nextSpanStart, currentSelection.base.offset);
+
+                  String textAfter = oldPlainText.substring(
+                      currentSelection.base.offset, nextSpanEnd);
+
+                  if (textBefore.isEmpty) {
+                    log.d("start");
+                    children.insert(
+                        index + 1,
+                        new TextSpan(
+                          text: text,
+                          style: style,
+                        ));
+                    children.insert(index + 2, nextSpan);
+                  } else if (textAfter.isEmpty) {
+                    log.d("end");
+                    children.insert(index + 1, nextSpan);
+                    children.insert(
+                        index + 2,
+                        new TextSpan(
+                          text: text,
+                          style: style,
+                        ));
+                  } else {
+                    log.d("middle");
+                    children.insert(
+                        index + 1,
+                        new TextSpan(
+                          text: textBefore,
+                          style: nextSpan.style,
+                        ));
+                    children.insert(
+                        index + 2,
+                        new TextSpan(
+                          text: text,
+                          style: style,
+                        ));
+                    children.insert(
+                        index + 3,
+                        new TextSpan(
+                          text: textAfter,
+                          style: nextSpan.style,
+                        ));
+                  }
+                }
+              } else {
+                log.d("middle");
+                children.insert(
+                    index,
+                    new TextSpan(
+                      text: textBefore,
+                      style: affectedSpan.style,
+                    ));
+                children.insert(
+                    index + 1,
+                    new TextSpan(
+                      text: text,
+                      style: style,
+                    ));
+                children.insert(
+                    index + 2,
+                    new TextSpan(
+                      text: textAfter,
+                      style: affectedSpan.style,
+                    ));
+              }
+            }
+
+            root = Extensions.copySpanWith(
+              base: currentSpan,
+              children: children,
+            );
           }
 
-          log.d(children);
-
-          TextSpan root =
-              Extensions.copySpanWith(base: oldValue.value, children: children);
           newValue = newValue.copyWith(value: root);
-        }
-
-        /// If the user inserts text at the end, check if the style of the
-        /// last span matches with the current style, if so just add the new
-        /// text to the text of the last [TextSpan] in children list.
-        ///
-        /// Otherwise add a new [TextSpan] with the new [style] and add it to
-        /// the end of the children list.
-        else {
-          log.d(
-              "----------------------------------------------------ADD TO END");
-
-          if (currentSpan.children.last.style == style) {
-            log.d(
-                "----------------------------------------------------SAME STYLE");
-            var text = newValue.text
-                .substring(currentSelection.start, newSelection.start);
-
-            List<TextSpan> children = [];
-
-            /// We need a copy of the children list to avoid changing the
-            /// [oldValue] content. <b>Remove this and see what happens. :D</b>
-            currentSpan.children.forEach((it) => children.add(it));
-
-            var lastSpan = children.last;
-            lastSpan =
-                Extensions.copySpanWith(base: lastSpan, text: lastSpan.text + text);
-            children.removeLast();
-            children.add(lastSpan);
-            TextSpan root =
-                Extensions.copySpanWith(base: oldValue.value, children: children);
-
-            newValue = newValue.copyWith(value: root);
-          } else {
-            log.d(
-                "-----------------------------------------------DIFFERENT STYLE");
-            var text = newValue.text
-                .substring(currentSelection.start, newSelection.start);
-
-            List<TextSpan> children = [];
-
-            /// We need a copy of the children list to avoid changing the
-            /// [oldValue] content. <b>Remove this and see what happens. :D</b>
-            currentSpan.children.forEach((it) => children.add(it));
-
-            children.add(new TextSpan(text: text, style: style));
-            TextSpan root =
-                Extensions.copySpanWith(base: oldValue.value, children: children);
-
-            newValue = newValue.copyWith(value: root);
-          }
         }
       }
 
       /// Something was deleted
       else {
-        String oldPlainText = oldValue.value.toPlainText();
-
-        /// If the insert position, indicated by [currentSelection.start] is
-        /// contained in the [text] of the root [TextSpan], just update the text
-        /// of the root element by subtracting the deleted text.
-        if (oldValue.value.text.length >= currentSelection.start) {
+        if (currentSpan.text.length >= currentSelection.start &&
+            currentSelection.isCollapsed) {
           log.d(
               "-----------------------------------------DELETE FROM ROOT TEXT");
           var text = currentSpan.text.substring(0, newSelection.extentOffset) +
               currentSpan.text.substring(oldValue.selection.extentOffset);
 
           newValue = newValue.copyWith(
-              value: Extensions.copySpanWith(base: oldValue.value, text: text));
-        }
-
-        /// If the insert position is in one of the children then we retrieve
-        /// that child and find its start and end position in the parent. Then
-        /// we update the text of that [TextSpan] with the new value.
-        ///
-        /// If the new text is empty then just remove the child from the list.
-        else if (oldPlainText.length > currentSelection.start) {
+            value: Extensions.copySpanWith(
+              base: currentSpan,
+              text: text,
+            ),
+          );
+        } else {
           log.d(
               "------------------------------------------DELETE FROM CHILDREN");
-          List<TextSpan> children = [];
+          List<TextSpan> children = currentSpan.children.toList();
 
-          log.d(oldValue.selection);
-          log.d(newValue.selection);
+          var isCollapsed = currentSelection.start - newSelection.start == 1 &&
+              currentSelection.isCollapsed;
+          var rootText = currentSpan.text;
 
-          /// We need a copy of the children list to avoid changing the
-          /// [oldValue] content. <b>Remove this and see what happens. :D</b>
-          currentSpan.children.forEach((it) => children.add(it));
+          if (isCollapsed) {
+            log.d("------------------------------------------IS COLAPSED");
+            // This is the⦚ text.
+            // This is th⦚ text.
 
-          TextSpan affectedSpan = currentSpan.getSpanForPosition(
-              new TextPosition(
-                  offset: currentSelection.start - 1,
-                  affinity: currentSelection.affinity));
+            // This is th⦚e text.
+            // This is t⦚e text.
 
-          log.d(affectedSpan.toStringDeep());
+            TextSpan affectedSpan = Extensions.getSpanForPosition(
+                currentSpan, currentSelection.start);
 
-          var index = children.indexOf(affectedSpan);
-          children.removeAt(index);
+            int index = children.indexOf(affectedSpan);
+            children.removeAt(index);
 
-          var affectedSpanStart =
-              Extensions.getOffsetInParent(currentSpan, affectedSpan);
-          log.d(affectedSpanStart);
-          var affectedSpanEnd = affectedSpanStart + affectedSpan.text.length;
-          log.d(affectedSpanEnd);
+            if (affectedSpan.text.length == 1) {
+              affectedSpan = null;
+            } else {
+              var start = currentSelection.start -
+                  Extensions.getOffsetInParent(currentSpan, affectedSpan);
 
-          var beforeText = oldPlainText.substring(
-              affectedSpanStart, newSelection.baseOffset);
-          log.d(beforeText);
+              var textBefore = affectedSpan.text.substring(0, start - 1);
+              var textAfter = affectedSpan.text.substring(start);
 
-          var afterText = oldPlainText.substring(
-              currentSelection.extentOffset, affectedSpanEnd);
-          log.d(afterText);
+              affectedSpan = Extensions.copySpanWith(
+                base: affectedSpan,
+                text: textBefore + textAfter,
+              );
+            }
 
-          String newText = beforeText + afterText;
+            if (affectedSpan != null) children.insert(index, affectedSpan);
+          } else {
+            log.d("------------------------------------------IS NOT COLAPSED");
+            //
+            // This is the⦚ text.
+            // This is ⦚ text.                        => fast delete by keyboard
 
-          if (newText.isNotEmpty) {
-            affectedSpan =
-                Extensions.copySpanWith(base: affectedSpan, text: newText);
-            children.insert(index, affectedSpan);
-          } else if (children.isEmpty) children = null;
+            // This is ⟦the ⟧text.
+            // This is ⦚text.
 
-          TextSpan root = new TextSpan(
+            var selection = currentSelection;
+            if (currentSelection.start - newSelection.start != 1) {
+              //fast delete by keyboard
+              selection = new TextSelection(
+                baseOffset: newSelection.start,
+                extentOffset: currentSelection.end,
+                affinity: currentSelection.affinity,
+              );
+            }
+
+            TextSpan startSpan =
+                Extensions.getSpanForPosition(currentSpan, selection.start);
+            TextSpan endSpan =
+                Extensions.getSpanForPosition(currentSpan, selection.end);
+
+            if (startSpan == currentSpan) {
+              //delete from root too
+              rootText = rootText.substring(0, newSelection.start);
+              int index = children.indexOf(endSpan);
+              children.removeRange(0, index + 1);
+
+              var span = _deleteSelectionRange(
+                  parent: currentSpan, span: endSpan, selection: selection);
+
+              if (span != null) children.insert(0, span);
+            } else if (startSpan == endSpan) {
+              int index = children.indexOf(startSpan);
+              children.removeAt(index);
+
+              var span = _deleteSelectionRange(
+                  parent: currentSpan, span: startSpan, selection: selection);
+
+              if (span != null) children.insert(index, span);
+            } else {
+              int startIndex = children.indexOf(startSpan);
+              int endIndex = children.indexOf(endSpan);
+              children.removeRange(startIndex, endIndex + 1);
+
+              startSpan = _deleteSelectionRange(
+                  parent: currentSpan, span: startSpan, selection: selection);
+
+              endSpan = _deleteSelectionRange(
+                  parent: currentSpan, span: endSpan, selection: selection);
+
+              if (startSpan != null && endSpan != null) {
+                children.insert(startIndex, startSpan);
+                children.insert(startIndex + 1, endSpan);
+              } else
+                children.insert(
+                    startIndex, startSpan == null ? endSpan : startSpan);
+            }
+          }
+
+          if (children.isEmpty) children = null;
+
+          newValue = newValue.copyWith(
+            value: new TextSpan(
+              text: rootText,
               style: currentSpan.style,
-              text: currentSpan.text,
+              recognizer: currentSpan.recognizer,
               children: children,
-              recognizer: currentSpan.recognizer);
-
-          newValue = newValue.copyWith(value: root);
-        }
-
-        /// If the user deletes text from the end, just remove the text from the
-        /// last [TextSpan] in children list.
-        ///
-        /// If the text is empty remove the child from list.
-        else {
-          log.d(
-              "-----------------------------------------------DELETE FROM END");
-          List<TextSpan> children = [];
-
-          /// We need a copy of the children list to avoid changing the
-          /// [oldValue] content. <b>Remove this and see what happens. :D</b>
-          currentSpan.children.forEach((it) => children.add(it));
-          var lastSpan = children.last;
-          children.removeLast();
-
-          var text = newValue.value.text
-              .substring(Extensions.getOffsetInParent(currentSpan, lastSpan));
-
-          if (text.isNotEmpty) {
-            lastSpan = Extensions.copySpanWith(base: lastSpan, text: text);
-            children.add(lastSpan);
-          } else if (children.isEmpty) children = null;
-
-          log.d("children: $children");
-
-          TextSpan root = new TextSpan(
-              style: currentSpan.style,
-              text: currentSpan.text,
-              children: children,
-              recognizer: currentSpan.recognizer);
-
-          newValue = newValue.copyWith(value: root);
+            ),
+          );
         }
       }
     }
 
+    newValue = newValue.copyWith(
+      value: Extensions.copySpanWith(
+        base: newValue.value,
+        children: optimiseChildren(newValue.value.children),
+      ),
+    );
+
+    log.d(newValue.value.toPlainText());
     return newValue;
+  }
+
+  static TextSpan _deleteSelectionRange({
+    @required TextSpan parent,
+    @required TextSpan span,
+    @required TextSelection selection,
+  }) {
+    try {
+      if (span.text.length == 1)
+        return null;
+      else {
+        int offsetInParent = Extensions.getOffsetInParent(parent, span);
+        int spanLength = span.text.length;
+
+        String text;
+
+        if (selection.start - offsetInParent < 0) {
+          int start = selection.end - offsetInParent;
+          text = span.text.substring(start);
+        } else {
+          int start = selection.start - offsetInParent;
+          int end = min(selection.end - offsetInParent, spanLength);
+
+          String textBefore = span.text.substring(0, start);
+          String textAfter = span.text.substring(end);
+
+          text = textBefore + textAfter;
+        }
+
+        return Extensions.copySpanWith(
+          base: span,
+          text: text,
+        );
+      }
+    } catch (e) {
+      log.e(e);
+      log.d(span);
+      return null;
+    }
   }
 
   static TextSpan updateSpansWithStyle(TextSpan span, TextSelection selection,
@@ -482,8 +755,8 @@ class RichTextEditingValueParser {
               style: Extensions.deepMerge(endSpan.style, diffStyle)));
 
           if (afterEndText.isNotEmpty)
-            newChildren
-                .add(Extensions.copySpanWith(base: endSpan, text: afterEndText));
+            newChildren.add(
+                Extensions.copySpanWith(base: endSpan, text: afterEndText));
 
           newChildren.addAll(children.getRange(endIndex + 1, children.length));
 
@@ -496,7 +769,7 @@ class RichTextEditingValueParser {
                 text: rootTextInSelection,
                 style: Extensions.deepMerge(span.style, diffStyle)));
 
-        children = _optimiseChildren(children);
+        children = optimiseChildren(children);
         newSpan = Extensions.copySpanWith(
             base: span, text: rootTextBeforeSelection, children: children);
       }
@@ -586,8 +859,8 @@ class RichTextEditingValueParser {
         var afterEndText = endSpanText.substring(beforeEndText.length);
 
         if (beforeStartText.isNotEmpty) {
-          beforeChildren
-              .add(Extensions.copySpanWith(base: startSpan, text: beforeStartText));
+          beforeChildren.add(
+              Extensions.copySpanWith(base: startSpan, text: beforeStartText));
         }
 
         beforeChildren.add(Extensions.copySpanWith(
@@ -613,7 +886,7 @@ class RichTextEditingValueParser {
       }
 
       beforeChildren.addAll(afterChildren);
-      beforeChildren = _optimiseChildren(beforeChildren);
+      beforeChildren = optimiseChildren(beforeChildren);
       newSpan = Extensions.copySpanWith(base: span, children: beforeChildren);
     }
 
@@ -622,14 +895,15 @@ class RichTextEditingValueParser {
 
   /// Return an optimized list of children where [TextSpan]s that are next to
   /// each other and have the same [TextStyle] are merged.
-  static List<TextSpan> _optimiseChildren(List<TextSpan> children) {
+  static List<TextSpan> optimiseChildren(List<TextSpan> children) {
+    if (children == null || children.isEmpty) return children;
     var newChildren = [];
-    children.forEach((span) {
-      var i = children.indexOf(span);
 
+    for (int i = 0; i < children.length; i++) {
+      var span = children[i];
       if (i == 0) {
         newChildren.add(span);
-        return;
+        continue;
       }
 
       var previousSpan = children[i - 1];
@@ -637,110 +911,14 @@ class RichTextEditingValueParser {
       if (span.style == previousSpan.style) {
         TextSpan lastSpanInNewChildren = newChildren.last;
         newChildren[newChildren.length - 1] = Extensions.copySpanWith(
-            base: previousSpan, text: lastSpanInNewChildren.text + span.text);
+          base: previousSpan,
+          text: lastSpanInNewChildren.text + span.text,
+        );
       } else
         newChildren.add(span);
-    });
+    }
 
     return newChildren;
-  }
-
-  static TextStyle getDifferenceStyle(TextStyle base, TextStyle style) {
-    log.d(base);
-    log.d(style);
-
-    Color color;
-    if (base.color != style.color) {
-      log.d("color: base=${base.color} style:${style.color}");
-      color = style.color;
-    }
-
-    String fontFamily;
-    if (base.fontFamily != style.fontFamily) {
-      log.d("fontFamily: base=${base.fontFamily} style:${style.fontFamily}");
-      fontFamily = style.fontFamily;
-    }
-
-    double fontSize;
-    if (base.fontSize != style.fontSize) {
-      log.d("fontSize: base=${base.fontSize} style:${style.fontSize}");
-      fontSize = style.fontSize;
-    }
-
-    FontWeight fontWeight;
-    if (base.fontWeight != style.fontWeight) {
-      log.d("fontWeight: base=${base.fontWeight} style:${style.fontWeight}");
-      fontWeight = style.fontWeight;
-    }
-
-    FontStyle fontStyle;
-    if (base.fontStyle != style.fontStyle) {
-      log.d("fontStyle: base=${base.fontStyle} style:${style.fontStyle}");
-      fontStyle = style.fontStyle;
-    }
-
-    double letterSpacing;
-    if (base.letterSpacing != style.letterSpacing) {
-      log.d("letterSpacing: base=${base.letterSpacing} style:${style
-          .letterSpacing}");
-      letterSpacing = style.letterSpacing;
-    }
-
-    double wordSpacing;
-    if (base.wordSpacing != style.wordSpacing) {
-      log.d("wordSpacing: base=${base.wordSpacing} style:${style.wordSpacing}");
-      wordSpacing = style.wordSpacing;
-    }
-
-    TextBaseline textBaseline;
-    if (base.textBaseline != style.textBaseline) {
-      log.d("textBaseline: base=${base.textBaseline} style:${style
-          .textBaseline}");
-      textBaseline = style.textBaseline;
-    }
-
-    double height;
-    if (base.height != style.height) {
-      log.d("height: base=${base.height} style:${style.height}");
-      height = style.height;
-    }
-
-    TextDecoration decoration;
-    if (base.decoration == style.decoration) {
-      log.d("decoration: base=${base.decoration} style:${style.decoration}");
-      decoration = style.decoration;
-    }
-
-    Color decorationColor;
-    if (base.decorationColor != style.decorationColor) {
-      log.d("decorationColor: base=${base.decorationColor} style:${style
-          .decorationColor}");
-      decorationColor = style.decorationColor;
-    }
-
-    TextDecorationStyle decorationStyle;
-    if (base.decorationStyle != style.decorationStyle) {
-      log.d("decorationStyle: base=${base.decorationStyle} style:${style
-          .decorationStyle}");
-      decorationStyle = style.decorationStyle;
-    }
-
-    TextStyle newStyle = new TextStyle(
-        color: color,
-        fontFamily: fontFamily,
-        fontSize: fontSize,
-        fontWeight: fontWeight,
-        fontStyle: fontStyle,
-        letterSpacing: letterSpacing,
-        wordSpacing: wordSpacing,
-        textBaseline: textBaseline,
-        height: height,
-        decoration: decoration,
-        decorationColor: decorationColor,
-        decorationStyle: decorationStyle);
-
-    log.d(newStyle);
-    return newStyle;
   }
 
   static bool _equalTextValue(RichTextEditingValue a, RichTextEditingValue b) {

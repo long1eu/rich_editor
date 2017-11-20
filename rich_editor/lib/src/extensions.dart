@@ -29,6 +29,24 @@ class Extensions {
     return length;
   }
 
+  /// Returns the text span that contains the given position in the text.
+  static TextSpan getSpanForPosition(TextSpan parent, int targetOffset) {
+    assert(parent.debugAssertIsValid());
+    int offset = 0;
+    TextSpan result;
+    parent.visitTextSpan((TextSpan span) {
+      assert(result == null);
+      final int endOffset = offset + span.text.length;
+      if (targetOffset >= offset && targetOffset <= endOffset) {
+        result = span;
+        return false;
+      }
+      offset = endOffset;
+      return true;
+    });
+    return result;
+  }
+
   /// Return the offset of this child in plain text or -1 if the children list
   /// is null or this [TextSpan] is not contained in this children list.
   static int getOffsetInParent(TextSpan parent, TextSpan span) {
@@ -47,7 +65,7 @@ class Extensions {
   }
 
   /// Return the max fontSize from a given [TextSpan] tree.
-  static maxFontSize(TextSpan textSpan) {
+  static double maxFontSize(TextSpan textSpan) {
     textSpan.debugAssertIsValid();
     double size = 0.0;
     textSpan.visitTextSpan((TextSpan span) {
@@ -101,7 +119,7 @@ class Extensions {
       decoration: decoration ?? base.decoration,
       decorationColor: decorationColor ?? base.decorationColor,
       decorationStyle: decorationStyle ?? base.decorationStyle,
-      package: package ?? "rich_editor",
+      package: package,
     );
   }
 
@@ -109,20 +127,22 @@ class Extensions {
   /// replaced by the non-null parameters of the given text style. This merge
   /// take into consideration the [TextDecoration] values and combines them. If
   /// the given text style is null, simply returns this text style.
+  ///
+  /// When [other] decoration is [TextDecoration.none], it overrides the base
+  /// decoration fully.
   static TextStyle deepMerge(TextStyle base, TextStyle other) {
     if (other == null) return base;
     assert(other.inherit);
 
     TextDecoration decoration;
-    if (base.decoration == null)
-      decoration = other.decoration;
-    else if (other.decoration == null)
+
+    if (other.decoration == null)
       decoration = base.decoration;
+    else if (base.decoration == null || other.decoration == TextDecoration.none)
+      decoration = other.decoration;
     else {
-      if (other.decoration == TextDecoration.none) {
-        decoration = TextDecoration.none;
-      } else if (getDecorationList(base.decoration).length >
-          getDecorationList(other.decoration).length) {
+      if (_getDecorationList(base.decoration).length >
+          _getDecorationList(other.decoration).length) {
         decoration = other.decoration;
       } else {
         decoration = new TextDecoration.combine(
@@ -147,7 +167,7 @@ class Extensions {
   }
 
   /// Return a List with all the decoration contained by the [TextDecoration].
-  static List<TextDecoration> getDecorationList(TextDecoration decoration) {
+  static List<TextDecoration> _getDecorationList(TextDecoration decoration) {
     final List<TextDecoration> decorationList = <TextDecoration>[];
 
     if (decoration == null) {} else if (decoration == TextDecoration.none) {
