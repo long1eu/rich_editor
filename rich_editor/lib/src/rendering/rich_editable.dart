@@ -101,6 +101,7 @@ class RenderRichEditable extends RenderBox {
   /// ViewportOffset.zero] if you have no need for scrolling.
   RenderRichEditable({
     TextSpan text,
+    TextStyle currentStyle,
     @required TextDirection textDirection,
     TextAlign textAlign: TextAlign.start,
     Color cursorColor,
@@ -171,6 +172,8 @@ class RenderRichEditable extends RenderBox {
     _textPainter.text = value;
     markNeedsTextLayout();
   }
+
+  TextStyle currentStyle;
 
   /// How the text should be aligned horizontally.
   ///
@@ -283,6 +286,9 @@ class RenderRichEditable extends RenderBox {
     if (_selection == value) return;
     _selection = value;
     _selectionRects = null;
+
+    setCaretPrototype();
+
     markNeedsPaint();
   }
 
@@ -522,22 +528,34 @@ class RenderRichEditable extends RenderBox {
 
   Rect _caretPrototype;
 
-  setCaretPrototype(double fontSize) {
+  setCaretPrototype() {
+    var fontSize = Extensions
+            .getSpanForPosition(text, selection.start + 1)
+            ?.style
+            ?.fontSize ??
+        16.0;
+
+    var max = findMax([fontSize, currentStyle?.fontSize]);
+
     _caretPrototype = new Rect.fromLTWH(0.0, _kCaretHeightOffset, _kCaretWidth,
-        fontSize ?? _preferredLineHeight - 2.0 * _kCaretHeightOffset);
+        max ?? _preferredLineHeight - 2.0 * _kCaretHeightOffset);
+  }
+
+  double findMax(List vals) {
+    double max = double.NEGATIVE_INFINITY;
+
+    for (double d in vals) {
+      if (d == null) continue;
+      if (d > max) max = d;
+    }
+
+    return max;
   }
 
   @override
   void performLayout() {
     _layoutText(constraints.maxWidth);
-    var fontSize = text
-            .getSpanForPosition(new TextPosition(
-                offset: selection.baseOffset - 1, affinity: selection.affinity))
-            ?.style
-            ?.fontSize ??
-        _preferredLineHeight;
-    _caretPrototype = new Rect.fromLTWH(0.0, _kCaretHeightOffset, _kCaretWidth,
-        fontSize - 2.0 * _kCaretHeightOffset);
+    setCaretPrototype();
 
     _selectionRects = null;
     // We grab _textPainter.size here because assigning to `size` on the next

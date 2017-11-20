@@ -16,8 +16,8 @@ apply plugin: 'kotlin-android'
 apply from: "$flutterRoot/packages/flutter_tools/gradle/flutter.gradle"
 
 android {
-    compileSdkVersion 27
-    buildToolsVersion '27.0.1'
+    compileSdkVersion 26
+    buildToolsVersion '26.0.3'
 
     lintOptions {
         disable 'InvalidPackage'
@@ -57,7 +57,6 @@ flutter {
 }
 
 dependencies {
-    androidTestCompile 'com.android.support:support-annotations:27.0.0'
     androidTestCompile 'com.android.support.test:runner:1.0.1'
     androidTestCompile 'com.android.support.test:rules:1.0.1'
     compile "org.jetbrains.kotlin:kotlin-stdlib-jre7:$kotlin_version"
